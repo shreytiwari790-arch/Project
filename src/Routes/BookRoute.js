@@ -41,13 +41,14 @@ router.post("/", isloggin, async (req, res) => {
 
     /* ---------- SAVE TO DB ---------- */
     const book = await BookModal.create({
-      title,
-      caption,
-      image: imageUrl,
-      pdfUrl:"sdsknfk",
-      rating,
-      user: req.user._id,
-    });
+  title,
+  caption,
+  image: imageUrl,
+  pdfUrl,
+  rating,
+  user: req.user._id,
+});
+
 
     res.status(201).json({
       message: "Book created successfully",
