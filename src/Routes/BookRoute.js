@@ -128,4 +128,16 @@ router.get('/user',isloggin,async (req,res)=>{
   }
 })
 
+router.get("/:id", isloggin, async (req, res) => {
+  try {
+    const book = await BookModel.findById(req.params.id).populate("user", "username image");
+    if (!book) return res.status(404).json({ message: "Book not found" });
+
+    res.json({ book });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;
