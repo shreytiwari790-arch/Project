@@ -21,21 +21,26 @@ router.post("/", isloggin, async (req, res) => {
     }
 
     /* ---------- PDF UPLOAD ---------- */
-    if (pdf) {
-      console.log("📡 Uploading PDF to Cloudinary...");
+    /* ---------- PDF UPLOAD ---------- */
+if (pdf) {
+  console.log("📡 Uploading PDF to Cloudinary...");
 
-      const pdfUpload = await cloudinary.uploader.upload(pdf, {
-        folder: "books/pdfs",
-        resource_type: "raw",
-      });
+  const pdfUpload = await cloudinary.uploader.upload(pdf, {
+    folder: "books/pdfs",
+    resource_type: "raw",
+    format: "pdf",
+    flags: "attachment:false",
+    use_filename: true,
+    unique_filename: true,
+  });
 
-      if (!pdfUpload.secure_url) {
-        throw new Error("PDF upload failed – no URL returned");
-      }
+  if (!pdfUpload.secure_url) {
+    throw new Error("PDF upload failed – no URL returned");
+  }
 
-      pdfUrl = pdfUpload.secure_url;
-      console.log("✅ PDF Uploaded:", pdfUrl);
-    }
+  pdfUrl = pdfUpload.secure_url;
+  console.log("✅ PDF Uploaded:", pdfUrl);
+}
 
     console.log("🧾 Saving to DB with pdfUrl:", pdfUrl);
 
