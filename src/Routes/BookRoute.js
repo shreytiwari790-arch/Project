@@ -98,30 +98,60 @@ router.get('/',isloggin, async (req, res) => {
   }
 })
 
-router.delete('/:id',isloggin,async (req,res)=>{
+router.delete("/:id", isloggin, async (req, res) => {
   try {
-    const book=await BookModal.findById(req.params.id);
-    if(!book) return res.status(404).json({message:"Book Not Found"});
-
-    if(book.user.toString()!==req.user._id.toString()){
-      return res.status(401).json({message:"Unauthorized"});
+    const book = await BookModal.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ message: "Book Not Found" });
     }
 
-    if(book.image&&book.image.includes("cloudinary"))
-    {
+    // Check ownership
+    if (book.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // ✅ Delete Image from Cloudinary
+    if (book.image) {
       try {
-        const publicId=book.image.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(publicId)
+        const imagePublicId = book.image
+          .split("/")
+          .slice(-2)
+          .join("/")
+          .split(".")[0];
+
+        await cloudinary.uploader.destroy(imagePublicId);
       } catch (error) {
-        console.log(err);
+        console.log("Image delete error:", error.message);
       }
     }
 
+    // ✅ Delete PDF from Cloudinary
+    if (book.pdfUrl) {
+      try {
+        const pdfPublicId = book.pdfUrl
+          .split("/")
+          .slice(-2)
+          .join("/")
+          .split(".")[0];
+
+        await cloudinary.uploader.destroy(pdfPublicId, {
+          resource_type: "raw", // VERY IMPORTANT for PDF
+        });
+      } catch (error) {
+        console.log("PDF delete error:", error.message);
+      }
+    }
+
+    // ✅ Delete book from DB
     await book.deleteOne();
+
+    res.status(200).json({ message: "Book deleted successfully" });
+
   } catch (error) {
-    
+    console.log(error);
+    res.status(500).json({ message: "Server Error" });
   }
-})
+});
 
 router.get('/user',isloggin,async (req,res)=>{
   try {
@@ -142,6 +172,33 @@ router.get("/:id", isloggin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// 🔍 SEARCH BOOKS (Feed)
+router.get("/search", isloggin, async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim().length === 0) {
+      return res.json({ books: [] });
+    }
+
+    const books = await BookModal.find({
+      $or: [
+        { title: { $regex: q, $options: "i" } },
+        { caption: { $regex: q, $options: "i" } },
+      ],
+    })
+      .populate("user", "username image")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json({ books });
+  } catch (err) {
+    console.error("Search Error:", err);
+    res.status(500).json({ message: "Search failed" });
   }
 });
 
