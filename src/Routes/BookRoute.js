@@ -69,7 +69,30 @@ if (pdf) {
 });
 
 
+router.get("/search", isloggin, async (req, res) => {
+  try {
+    const { q } = req.query;
 
+    if (!q || q.trim().length === 0) {
+      return res.json({ books: [] });
+    }
+
+    const books = await BookModal.find({
+      $or: [
+        { title: { $regex: q, $options: "i" } },
+        { caption: { $regex: q, $options: "i" } },
+      ],
+    })
+      .populate("user", "username image")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json({ books });
+  } catch (err) {
+    console.error("Search Error:", err);
+    res.status(500).json({ message: "Search failed" });
+  }
+});
 
 router.get('/',isloggin, async (req, res) => {
   //"https//api/books/page=1/limit=5"
@@ -177,29 +200,6 @@ router.get("/:id", isloggin, async (req, res) => {
 
 
 // 🔍 SEARCH BOOKS (Feed)
-router.get("/search", isloggin, async (req, res) => {
-  try {
-    const { q } = req.query;
 
-    if (!q || q.trim().length === 0) {
-      return res.json({ books: [] });
-    }
-
-    const books = await BookModal.find({
-      $or: [
-        { title: { $regex: q, $options: "i" } },
-        { caption: { $regex: q, $options: "i" } },
-      ],
-    })
-      .populate("user", "username image")
-      .sort({ createdAt: -1 })
-      .limit(20);
-
-    res.json({ books });
-  } catch (err) {
-    console.error("Search Error:", err);
-    res.status(500).json({ message: "Search failed" });
-  }
-});
 
 module.exports = router;
